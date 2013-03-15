@@ -206,11 +206,10 @@ vprintfmt(void (*putch)(int, void*), void *putdat, const char *fmt, va_list ap)
 		// (unsigned) octal
 		case 'o':
 			// Replace this with your code.
-			putch('X', putdat);
-			putch('X', putdat);
-			putch('X', putdat);
-			break;
-
+			num = getint(&ap, lflag);
+			base = 8;
+			goto number;
+		
 		// pointer
 		case 'p':
 			putch('0', putdat);
@@ -249,7 +248,15 @@ vprintfmt(void (*putch)(int, void*), void *putdat, const char *fmt, va_list ap)
             const char *overflow_error = "\nwarning! The value %n argument pointed to has been overflowed!\n";
 
             // Your code here
-
+			char *pnum = va_arg(ap, char *);
+			if(pnum == NULL){
+				printfmt(putch, putdat, "%s", null_error);
+			}else if((*((int *)putdat)) > 127){
+				*pnum = *((char*)putdat);
+				printfmt(putch, putdat, "%s", overflow_error);
+			}else{
+				*pnum = *((char*)putdat);
+			}
             break;
         }
 
