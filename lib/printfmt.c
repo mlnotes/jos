@@ -207,10 +207,6 @@ vprintfmt(void (*putch)(int, void*), void *putdat, const char *fmt, va_list ap)
 		case 'o':
 			// Replace this with your code.
 			num = getint(&ap, lflag);
-			if((long long)num < 0){
-				putch('-', putdat);
-				num = -(long long) num;
-			}
 			base = 8;
 			goto number;
 		
@@ -252,7 +248,15 @@ vprintfmt(void (*putch)(int, void*), void *putdat, const char *fmt, va_list ap)
             const char *overflow_error = "\nwarning! The value %n argument pointed to has been overflowed!\n";
 
             // Your code here
-
+			char *pnum = va_arg(ap, char *);
+			if(pnum == NULL){
+				printfmt(putch, putdat, "%s", null_error);
+			}else if((*((int *)putdat)) > 127){
+				*pnum = *((char*)putdat);
+				printfmt(putch, putdat, "%s", overflow_error);
+			}else{
+				*pnum = *((char*)putdat);
+			}
             break;
         }
 
