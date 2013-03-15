@@ -102,6 +102,22 @@ boot_alloc(uint32_t n)
 	// to a multiple of PGSIZE.
 	//
 	// LAB 2: Your code here.
+	if(n > 0){
+		uint32_t size = ROUNDUP(n, PGSIZE);
+		
+		if(PADDR(nextfree+size) > npages*PGSIZE){
+			panic("boot_alloc: out of memory size:%d, npages:%d\n", 
+					size, npages);
+			return NULL;
+		}
+		
+		
+		result = nextfree;
+		nextfree += size;
+		return result;
+	}else if(n == 0){
+		return nextfree;
+	}
 
 	return NULL;
 }
@@ -125,7 +141,7 @@ mem_init(void)
 	i386_detect_memory();
 
 	// Remove this line when you're ready to test this function.
-	panic("mem_init: This function is not finished\n");
+	//panic("mem_init: This function is not finished\n");
 
 	//////////////////////////////////////////////////////////////////////
 	// create initial page directory.
@@ -147,6 +163,7 @@ mem_init(void)
 	// each physical page, there is a corresponding struct Page in this
 	// array.  'npages' is the number of physical pages in memory.
 	// Your code goes here:
+	pages = boot_alloc(npages*sizeof(struct Page));
 
 	//////////////////////////////////////////////////////////////////////
 	// Now that we've allocated the initial kernel data structures, we set
@@ -251,7 +268,29 @@ page_init(void)
 	// NB: DO NOT actually touch the physical memory corresponding to
 	// free pages!
 	size_t i;
-	for (i = 0; i < npages; i++) {
+	page_free_list = NULL;
+
+	// 1.page 0 is in use
+	pages[0].pp_ref = 1;
+	
+	// 2.the rest of base memroy is free
+	for(i = 1; i < npages_basemem; ++i){
+		pages[i].pp_ref = 0;
+		pages[i].pp_link = page_free_list;
+		page_free_list = &pages[i];
+	}
+
+	// 3.IO hole mustn't be allocated
+	for(i = IOPHYSMEM/PGSIZE; i < EXTPHYSMEM/PGSIZE; ++i){
+		pages[i].pp_ref = 0;
+	}
+
+	// 4.extended memroy
+	for(i = EXTPHYSMEM/PGSIZE; i < PADDR(boot_alloc(0))/PGSIZE; ++i){
+		pages[i].pp_ref = 0;
+	}
+
+	for( i = PADDR(boot_alloc(0))/PGSIZE; i < npages; ++i){
 		pages[i].pp_ref = 0;
 		pages[i].pp_link = page_free_list;
 		page_free_list = &pages[i];
@@ -271,7 +310,18 @@ struct Page *
 page_alloc(int alloc_flags)
 {
 	// Fill this function in
-	return 0;
+	struct Page *rval = NULL;
+	if(page_free_list != NULL){
+		rval = page_free_list;
+		page_free_list = page_free_list->pp_link;
+
+		if(alloc_flags & ALLOC_ZERO){
+			memset(page2kva(rval), 0, PGSIZE);
+		}
+		rval->pp_link = NULL;
+	}
+
+	return rval;
 }
 
 //
@@ -290,7 +340,52 @@ struct Page *
 page_alloc_4pages(int alloc_flags)
 {
 	// Fill this function
-	return NULL;
+	size_t i;
+	struct Page *page;
+	struct Page tmp;
+	struct Page *head = &tmp;
+	struct Page *rval = page_free_list;
+	
+	struct Page *four[4];
+	head->pp_link = page_free_list;
+	while(rval){
+		four[3] = rval;
+		for(i = 0; i < 3 && rval->pp_link; ++i){
+			if(rval - rval->pp_link != 1)
+				break;
+			rval = rval->pp_link;
+
+			four[2-i] = rval;
+		}
+
+		if(i == 3)
+			break;
+		
+		head = rval;
+		rval = rval->pp_link;		
+	}
+
+	if(rval && (alloc_flags & ALLOC_ZERO)){
+		memset(page2kva(rval), 0, PGSIZE*4);
+	}
+
+	if(rval){
+		// remove these 4 pages from page_free_list
+		if(head->pp_link == page_free_list){
+			page_free_list = rval->pp_link;
+		}else{
+			head->pp_link = rval->pp_link;
+		}
+
+		// link these 4 pages as pa asc
+		// rval == four[0]
+		for(i = 0; i < 3; ++i){
+			four[i]->pp_link = four[i+1];
+		}
+		four[3] = NULL;
+	}
+
+	return rval;
 }
 
 // Return 4 continuous pages to chunck list. Do the following things:
@@ -302,7 +397,21 @@ int
 page_free_4pages(struct Page *pp)
 {
 	// Fill this function
-	return -1;
+	struct Page *head = pp;
+	
+	if(!check_continuous(pp))
+		return -1;
+	
+	// should these pages be freed using page_free ?
+	//page_free(head);
+	while(pp->pp_link){
+		pp = pp->pp_link;
+	}
+
+	pp->pp_link = chunck_list.pp_link;
+	chunck_list.pp_link = head;
+
+	return 0;
 }
 
 //
@@ -313,6 +422,20 @@ void
 page_free(struct Page *pp)
 {
 	// Fill this function in
+	if(!pp->pp_ref && pp){
+		// ensure pa desc in page_free_list
+		if(pp > page_free_list){
+			pp->pp_link = page_free_list;
+			page_free_list = pp;
+		}else{
+			struct Page *prev = page_free_list;
+			while(prev->pp_link > pp)
+				prev = prev->pp_link;
+			
+			pp->pp_link = prev->pp_link;
+			prev->pp_link = pp;
+		}
+	}
 }
 
 //
