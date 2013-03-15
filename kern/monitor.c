@@ -104,6 +104,21 @@ int
 mon_backtrace(int argc, char **argv, struct Trapframe *tf)
 {
 	// Your code here.
+	uint32_t ebp = read_ebp();
+	uint32_t *pret, *parg;
+
+	while(1){
+		pret = (uint32_t *)ebp + 1;
+		parg = pret + 1; 
+
+		cprintf("ebp %08x eip %08x args %08x %08x %08x %08x %08x\n", 
+					ebp, *(pret), *(parg), *(parg+1), 
+					*(parg+2), *(parg+3), *(parg+4));
+
+		if(!ebp) break;
+		ebp = *((uint32_t*)ebp);
+	}
+
     overflow_me();
     cprintf("Backtrace success\n");
 	return 0;
