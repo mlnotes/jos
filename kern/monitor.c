@@ -90,24 +90,11 @@ start_overflow(void)
 	char *pret_addr;
 	
 	// Your code here.
-
-	// set the ebp to the ebp of caller function: overflow_me
-	uint32_t *ebp = (uint32_t *)read_ebp();
-	uint32_t caller_ebp = *ebp;
-	*ebp = *((uint32_t *)caller_ebp);
-	
-	// get current return address: pret_addr 
-	pret_addr = (char *)read_pretaddr();
-
-	// set the return address of do_overflow to 
-	// caller function overflow_me's return address
-	*((uint32_t *)(pret_addr+4)) = *((uint32_t *)caller_ebp + 1);
-
-	// set current return address point to do_overflow
-	// *(uint32_t *)pret_addr = (uint32_t)do_overflow;
-
-	// x86 is little endian
 	int i = 0;
+
+	pret_addr = (char *)read_pretaddr();
+	*(uint32_t *)(pret_addr + 4) = *(uint32_t *)pret_addr;
+	
 	for(i = 0; i < 4; ++i){
 		nstr = ((uint32_t)do_overflow >> (8*i)) & 0xff;
 		memset(str, ' ', nstr);
