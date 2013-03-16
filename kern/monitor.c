@@ -87,11 +87,33 @@ start_overflow(void)
 
     char str[256] = {};
     int nstr = 0;
-    char *pret_addr;
-
+	char *pret_addr;
+	
 	// Your code here.
-    
 
+	// set the ebp to the ebp of caller function: overflow_me
+	uint32_t *ebp = (uint32_t *)read_ebp();
+	uint32_t caller_ebp = *ebp;
+	*ebp = *((uint32_t *)caller_ebp);
+	
+	// get current return address: pret_addr 
+	pret_addr = (char *)read_pretaddr();
+
+	// set the return address of do_overflow to 
+	// caller function overflow_me's return address
+	*((uint32_t *)(pret_addr+4)) = *((uint32_t *)caller_ebp + 1);
+
+	// set current return address point to do_overflow
+	// *(uint32_t *)pret_addr = (uint32_t)do_overflow;
+
+	// x86 is little endian
+	int i = 0;
+	for(i = 0; i < 4; ++i){
+		nstr = ((uint32_t)do_overflow >> (8*i)) & 0xff;
+		memset(str, ' ', nstr);
+		str[nstr] = 0;
+		cprintf("%s%n", str, pret_addr+i);
+	}
 
 }
 
@@ -130,7 +152,7 @@ mon_backtrace(int argc, char **argv, struct Trapframe *tf)
 					info.eip_line, funname, *pret-info.eip_fn_addr);
 
 		ebp = *((uint32_t*)ebp);
-	}
+	};
 
     overflow_me();
     cprintf("Backtrace success\n");
