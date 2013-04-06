@@ -190,7 +190,8 @@ mem_init(void)
 	// Your code goes here:
 	boot_map_region(kern_pgdir, UPAGES, 
 					ROUNDUP(npages*sizeof(struct Page), PGSIZE),
-					PADDR(pages), PTE_U | PTE_P);
+					PADDR(pages), 
+					PTE_U | PTE_P);
 
 
 	//////////////////////////////////////////////////////////////////////
@@ -215,7 +216,7 @@ mem_init(void)
 	// we just set up the mapping anyway.
 	// Permissions: kernel RW, user NONE
 	// Your code goes here:
-	boot_map_region(kern_pgdir, KERNBASE, ~KERNBASE+1, 0, PTE_W | PTE_P);
+	boot_map_region(kern_pgdir, KERNBASE, 0xffffffff-KERNBASE+1, 0, PTE_W | PTE_P);
 
 	// Check that the initial page directory has been set up correctly.
 	check_kern_pgdir();
@@ -491,7 +492,7 @@ pgdir_walk(pde_t *pgdir, const void *va, int create)
 	pde_t *pde;
 	pte_t *pte;
 
-	pde = &pgdir[PDX(va)];
+	pde = pgdir + PDX(va);
 	if(*pde & PTE_P){
 		pte = (pte_t *)KADDR(PTE_ADDR(*pde));
 		return pte+PTX(va);
@@ -502,11 +503,11 @@ pgdir_walk(pde_t *pgdir, const void *va, int create)
 
 		pp->pp_ref += 1;
 		pte = page2kva(pp);
-		*pde = PTE_ADDR(PADDR(pte)) | PTE_W | PTE_U | PTE_P;
+
+		// assign present, write and user permission
+		*pde = PTE_ADDR(PADDR(pte)) | PTE_P | PTE_W | PTE_U;
 		return pte+PTX(va);
 	}
-
-
 	return NULL;
 }
 
@@ -528,9 +529,10 @@ boot_map_region(pde_t *pgdir, uintptr_t va, size_t size, physaddr_t pa, int perm
 	size_t i;
 	for(i = 0; i < size; i += PGSIZE){
 		pte = pgdir_walk(pgdir, (void *)(va+i), 1);
+		
+		// PTE_ADDR(pa+i) is Page Base Address
 		*pte = PTE_ADDR(pa+i) | PTE_P | perm;
 	}
-
 }
 
 //
