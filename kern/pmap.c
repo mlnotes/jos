@@ -490,23 +490,23 @@ pgdir_walk(pde_t *pgdir, const void *va, int create)
 {
 	// Fill this function in
 	pde_t *pde;
-	pte_t *pte;
+	pte_t *pgtable;
 
 	pde = pgdir + PDX(va);
 	if(*pde & PTE_P){
-		pte = (pte_t *)KADDR(PTE_ADDR(*pde));
-		return pte+PTX(va);
+		pgtable = (pte_t *)KADDR(PTE_ADDR(*pde));
+		return pgtable+PTX(va);
 	}else if(create){
 		struct Page *pp = page_alloc(ALLOC_ZERO);
 		if(!pp) 
 			return NULL;
 
 		pp->pp_ref += 1;
-		pte = page2kva(pp);
+		pgtable = page2kva(pp);
 
 		// assign present, write and user permission
-		*pde = PTE_ADDR(PADDR(pte)) | PTE_P | PTE_W | PTE_U;
-		return pte+PTX(va);
+		*pde = PTE_ADDR(PADDR(pgtable)) | PTE_P | PTE_W | PTE_U;
+		return pgtable+PTX(va);
 	}
 	return NULL;
 }
