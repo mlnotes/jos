@@ -316,7 +316,7 @@ page_alloc(int alloc_flags)
 		page_free_list = page_free_list->pp_link;
 
 		if(alloc_flags & ALLOC_ZERO){
-			memset(page2kva(rval), 0, PGSIZE);
+			memset((char *)page2kva(rval), 0, PGSIZE);
 		}
 		rval->pp_link = NULL;
 	}
@@ -397,6 +397,7 @@ int
 page_free_4pages(struct Page *pp)
 {
 	// Fill this function
+	size_t i;
 	struct Page *head = pp;
 	
 	if(!check_continuous(pp))
@@ -404,7 +405,7 @@ page_free_4pages(struct Page *pp)
 	
 	// should these pages be freed using page_free ?
 	//page_free(head);
-	while(pp->pp_link){
+	for(i = 0; i < 3; ++i){
 		pp = pp->pp_link;
 	}
 
@@ -422,7 +423,12 @@ void
 page_free(struct Page *pp)
 {
 	// Fill this function in
-	if(!pp->pp_ref && pp){
+	if(pp && !pp->pp_ref){
+		/*
+		pp->pp_link = page_free_list;
+		page_free_list = pp;
+		*/
+		
 		// ensure pa desc in page_free_list
 		if(pp > page_free_list){
 			pp->pp_link = page_free_list;
@@ -475,6 +481,25 @@ pte_t *
 pgdir_walk(pde_t *pgdir, const void *va, int create)
 {
 	// Fill this function in
+	pde_t *pde;
+	pte_t *pte;
+
+	pde = &pgdir[PDX(va)];
+	if(*pde & PTE_P){
+		pte = (pte_t *)KADDR(PTE_ADDR(*pde));
+		return pte+PTX(va);
+	}else if(create){
+		struct Page *pp = page_alloc(ALLOC_ZERO);
+		if(!pp) 
+			return NULL;
+
+		pp->pp_ref += 1;
+		pte = page2kva(pp);
+		*pde = PTE_ADDR(PADDR(pte)) | PTE_W | PTE_U | PTE_P;
+		return pte+PTX(va);
+	}
+
+
 	return NULL;
 }
 
@@ -492,6 +517,13 @@ static void
 boot_map_region(pde_t *pgdir, uintptr_t va, size_t size, physaddr_t pa, int perm)
 {
 	// Fill this function in
+	pte_t *pte;
+	size_t i;
+	for(i = 0; i < size; i += PGSIZE){
+		pte = pgdir_walk(pgdir, (void *)(va+i), 1);
+		*pte = PTE_ADDR(pa+i) | PTE_P | perm;
+	}
+
 }
 
 //
@@ -522,6 +554,25 @@ int
 page_insert(pde_t *pgdir, struct Page *pp, void *va, int perm)
 {
 	// Fill this function in
+	pte_t *pte = pgdir_walk(pgdir, va, 0);
+	
+	// incase pp be removed if pp already mapped to va
+	pp->pp_ref += 1;
+	if(pte){
+		if(*pte & PTE_P){
+			page_remove(pgdir, va);
+		}
+	}else{
+		pte = pgdir_walk(pgdir, va, 1);
+		if(!pte){
+			pp->pp_ref -= 1;
+			return -E_NO_MEM;
+		}	
+	}
+
+	*pte = PTE_ADDR(page2pa(pp)) | perm | PTE_P;
+
+
 	return 0;
 }
 
@@ -540,7 +591,16 @@ struct Page *
 page_lookup(pde_t *pgdir, void *va, pte_t **pte_store)
 {
 	// Fill this function in
-	return NULL;
+	pte_t *pte = pgdir_walk(pgdir, va, 0);
+	if(!pte){
+		return NULL;
+	}
+
+	if(pte_store){
+		*pte_store = pte;
+	}
+
+	return pa2page(PTE_ADDR(*pte));
 }
 
 //
@@ -562,6 +622,16 @@ void
 page_remove(pde_t *pgdir, void *va)
 {
 	// Fill this function in
+	pte_t *pte;
+	struct Page *pp = page_lookup(pgdir, va, &pte);
+	
+	if(!pp){
+		return;
+	}
+
+	*pte = 0;
+	page_decref(pp);
+	tlb_invalidate(pgdir, va);
 }
 
 //
@@ -955,7 +1025,8 @@ check_four_pages(void)
 	char* addr;
 	int i;
 	pp = pp0 = 0;
-	
+
+
 	// Allocate two single pages
 	pp =  page_alloc(0);
 	pp0 = page_alloc(0);
