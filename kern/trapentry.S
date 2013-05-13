@@ -51,7 +51,7 @@
 TRAPHANDLER_NOEC(t_divide, T_DIVIDE);	
 TRAPHANDLER(t_debug, T_DEBUG);	
 TRAPHANDLER(t_nmi, T_NMI);	
-TRAPHANDLER(t_brkpt, T_BRKPT);	
+TRAPHANDLER_NOEC(t_brkpt, T_BRKPT);	
 TRAPHANDLER(t_oflow, T_OFLOW);	
 TRAPHANDLER(t_bound, T_BOUND);	
 TRAPHANDLER(t_illop, T_ILLOP);	
@@ -69,6 +69,7 @@ TRAPHANDLER(t_align, T_ALIGN);
 TRAPHANDLER(t_mchk, T_MCHK);	
 TRAPHANDLER(t_simderr, T_SIMDERR);	
 
+TRAPHANDLER_NOEC(t_syscall, T_SYSCALL);
 /* irq */
 TRAPHANDLER_NOEC(t_irq0, IRQ_OFFSET + 0);	
 TRAPHANDLER_NOEC(t_irq1, IRQ_OFFSET + 1);	
@@ -96,7 +97,6 @@ sysenter_handler:
  * Lab 3: Your code here for system call handling
  */
 
-/*
 	pushl	$0x0
 	pushl	%edi
 	pushl	%ebx
@@ -110,7 +110,6 @@ sysenter_handler:
 	movl	%ebp, %ecx
 	sti
 	sysexit
-*/
 
 /*
  * Lab 3: Your code here for _alltraps

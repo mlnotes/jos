@@ -9,6 +9,11 @@
 #include <kern/env.h>
 #include <kern/syscall.h>
 
+#define wrmsr(msr, val1, val2) \
+		__asm__ __volatile__("wrmsr" \
+		: /* no outputs */ \
+		: "c" (msr), "a" (val1), "d" (val2))
+
 static struct Taskstate ts;
 
 /* For debugging, so print_trapframe can distinguish between printing
@@ -144,6 +149,11 @@ trap_init(void)
 	SETGATE(idt[IRQ_OFFSET + 14], 0, GD_KT, t_irq14, 0);	
 	SETGATE(idt[IRQ_OFFSET + 15], 0, GD_KT, t_irq15, 0);	
 
+
+	wrmsr(0x174, GD_KT, 0);
+	wrmsr(0x175, KSTACKTOP, 0);
+	wrmsr(0x176, (uint32_t)&sysenter_handler, 0);
+	
 	// Per-CPU setup 
 	trap_init_percpu();
 }
@@ -221,6 +231,15 @@ trap_dispatch(struct Trapframe *tf)
 {
 	// Handle processor exceptions.
 	// LAB 3: Your code here.
+	switch(tf->tf_trapno){
+	case T_PGFLT:
+		page_fault_handler(tf);
+		return;
+	case T_BRKPT:
+		monitor(tf);
+		return;
+	}
+	
 
 	// Unexpected trap: The user process or the kernel has a bug.
 	print_trapframe(tf);
