@@ -69,26 +69,6 @@ TRAPHANDLER(t_align, T_ALIGN);
 TRAPHANDLER(t_mchk, T_MCHK);	
 TRAPHANDLER(t_simderr, T_SIMDERR);	
 
-TRAPHANDLER_NOEC(t_syscall, T_SYSCALL);
-/* irq */
-TRAPHANDLER_NOEC(t_irq0, IRQ_OFFSET + 0);	
-TRAPHANDLER_NOEC(t_irq1, IRQ_OFFSET + 1);	
-TRAPHANDLER_NOEC(t_irq2, IRQ_OFFSET + 2);	
-TRAPHANDLER_NOEC(t_irq3, IRQ_OFFSET + 3);	
-TRAPHANDLER_NOEC(t_irq4, IRQ_OFFSET + 4);	
-TRAPHANDLER_NOEC(t_irq5, IRQ_OFFSET + 5);	
-TRAPHANDLER_NOEC(t_irq6, IRQ_OFFSET + 6);	
-TRAPHANDLER_NOEC(t_irq7, IRQ_OFFSET + 7);	
-TRAPHANDLER_NOEC(t_irq8, IRQ_OFFSET + 8);	
-TRAPHANDLER_NOEC(t_irq9, IRQ_OFFSET + 9);	
-TRAPHANDLER_NOEC(t_irq10, IRQ_OFFSET + 10);	
-TRAPHANDLER_NOEC(t_irq11, IRQ_OFFSET + 11);	
-TRAPHANDLER_NOEC(t_irq12, IRQ_OFFSET + 12);	
-TRAPHANDLER_NOEC(t_irq13, IRQ_OFFSET + 13);	
-TRAPHANDLER_NOEC(t_irq14, IRQ_OFFSET + 14);	
-TRAPHANDLER_NOEC(t_irq15, IRQ_OFFSET + 15);	
-
-
 .globl sysenter_handler;
 .type sysenter_handler, @function;
 .align 2;
@@ -99,7 +79,7 @@ sysenter_handler:
 	pushl $GD_UD | 3
 	pushl %ebp
 	pushfl
-	pushl	$GD_UT| 3
+	pushl	$GD_UT | 3
 	pushl	%esi
 	pushl	$0
 	pushl	$0
@@ -118,23 +98,6 @@ sysenter_handler:
 	movl	%ebp, %ecx
 	movl	%esi, %edx
 	sysexit
-
-
-/*
-	pushl	$0x0
-	pushl	%edi
-	pushl	%ebx
-	pushl	%ecx
-	pushl	%edx
-	pushl	%eax
-	call	syscall
-	
-	addl	$0x18, %esp
-	movl	%esi, %edx
-	movl	%ebp, %ecx
-	sti
-	sysexit
-*/
 
 /*
  * Lab 3: Your code here for _alltraps

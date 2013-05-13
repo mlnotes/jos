@@ -39,11 +39,9 @@ sgdt(struct Pseudodesc* gdtd)
 
 void evil_wrapper(){
 	evil();
-
 	*gdt_entry = saved_gdtdesc;
 
 	asm volatile("popl %ebp");
-
 	asm volatile("lret");
 }
 
@@ -68,7 +66,7 @@ void ring0_call(void (*fun_ptr)(void)) {
 
 	int r = sys_map_kernel_page((void*)gdtd.pd_base, (void*)va);
 	if(r < 0){
-		cprintf("HHHHHHHHHHHHH %e\n", r);
+		cprintf("map kernel page error: %e\n", r);
 	}
 
 	uint32_t idx = GD_UD >> 3;
@@ -77,9 +75,7 @@ void ring0_call(void (*fun_ptr)(void)) {
 	uint32_t offset = PGOFF(gdtd.pd_base);
 
 	gdt = (struct Segdesc*) (base + offset);
-
 	gdt_entry = gdt + idx;
-
 	saved_gdtdesc = *gdt_entry;
 
 	SETCALLGATE(*((struct Gatedesc*)gdt_entry), GD_KT, evil_wrapper, 3);
