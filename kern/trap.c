@@ -9,6 +9,11 @@
 #include <kern/env.h>
 #include <kern/syscall.h>
 
+#define wrmsr(msr, val1, val2) \
+	__asm__ __volatile__("wrmsr" \
+	: /* no outputs */ \
+	: "c" (msr), "a" (val1), "d" (val2))
+
 static struct Taskstate ts;
 
 /* For debugging, so print_trapframe can distinguish between printing
@@ -65,7 +70,89 @@ trap_init(void)
 	extern struct Segdesc gdt[];
 
 	// LAB 3: Your code here.
+	extern void t_divide();
+	extern void t_debug();
+	extern void t_nmi();
+	extern void t_brkpt();
+	extern void t_oflow();
+	extern void t_bound();
+	extern void t_illop();
+	extern void t_device();
+	extern void t_dblflt();
 
+	extern void t_tss();
+	extern void t_segnp();
+	extern void t_stack();
+	extern void t_gpflt();
+	extern void t_pgflt();
+
+	extern void t_fperr();
+	extern void t_align();
+	extern void t_mchk();
+	extern void t_simderr();
+
+	extern void sysenter_handler();
+	
+	extern void t_irq0();
+	extern void t_irq1();
+	extern void t_irq2();
+	extern void t_irq3();
+	extern void t_irq4();
+	extern void t_irq5();
+	extern void t_irq6();
+	extern void t_irq7();
+	extern void t_irq8();
+	extern void t_irq9();
+	extern void t_irq10();
+	extern void t_irq11();
+	extern void t_irq12();
+	extern void t_irq13();
+	extern void t_irq14();
+	extern void t_irq15();
+
+	SETGATE(idt[T_DIVIDE], 0, GD_KT, t_divide, 0);
+	SETGATE(idt[T_DEBUG], 0, GD_KT, t_debug, 0);
+	SETGATE(idt[T_NMI], 0, GD_KT, t_nmi, 0);
+	SETGATE(idt[T_BRKPT], 0, GD_KT, t_brkpt, 3);	// user
+	SETGATE(idt[T_OFLOW], 0, GD_KT, t_oflow, 0);
+	SETGATE(idt[T_BOUND], 0, GD_KT, t_bound, 0);
+	SETGATE(idt[T_ILLOP], 0, GD_KT, t_illop, 0);
+	SETGATE(idt[T_DEVICE], 0, GD_KT, t_device, 0);
+	SETGATE(idt[T_DBLFLT], 0, GD_KT, t_dblflt, 0);
+
+	SETGATE(idt[T_TSS], 0, GD_KT, t_tss, 0);
+	SETGATE(idt[T_SEGNP], 0, GD_KT, t_segnp, 0);
+	SETGATE(idt[T_STACK], 0, GD_KT, t_stack, 0);
+	SETGATE(idt[T_GPFLT], 0, GD_KT, t_gpflt, 0);
+	SETGATE(idt[T_PGFLT], 0, GD_KT, t_pgflt, 0);
+
+	SETGATE(idt[T_FPERR], 0, GD_KT, t_fperr, 0);
+	SETGATE(idt[T_ALIGN], 0, GD_KT, t_align, 0);
+	SETGATE(idt[T_MCHK], 0, GD_KT, t_mchk, 0);
+	SETGATE(idt[T_SIMDERR], 0, GD_KT, t_simderr, 0);
+
+	// irq gate
+	SETGATE(idt[IRQ_OFFSET + 0], 0, GD_KT, t_irq0, 0);	
+	SETGATE(idt[IRQ_OFFSET + 1], 0, GD_KT, t_irq1, 0);	
+	SETGATE(idt[IRQ_OFFSET + 2], 0, GD_KT, t_irq2, 0);	
+	SETGATE(idt[IRQ_OFFSET + 3], 0, GD_KT, t_irq3, 0);	
+	SETGATE(idt[IRQ_OFFSET + 4], 0, GD_KT, t_irq4, 0);	
+	SETGATE(idt[IRQ_OFFSET + 5], 0, GD_KT, t_irq5, 0);	
+	SETGATE(idt[IRQ_OFFSET + 6], 0, GD_KT, t_irq6, 0);	
+	SETGATE(idt[IRQ_OFFSET + 7], 0, GD_KT, t_irq7, 0);	
+	SETGATE(idt[IRQ_OFFSET + 8], 0, GD_KT, t_irq8, 0);	
+	SETGATE(idt[IRQ_OFFSET + 9], 0, GD_KT, t_irq9, 0);	
+	SETGATE(idt[IRQ_OFFSET + 10], 0, GD_KT, t_irq10, 0);	
+	SETGATE(idt[IRQ_OFFSET + 11], 0, GD_KT, t_irq11, 0);	
+	SETGATE(idt[IRQ_OFFSET + 12], 0, GD_KT, t_irq12, 0);	
+	SETGATE(idt[IRQ_OFFSET + 13], 0, GD_KT, t_irq13, 0);	
+	SETGATE(idt[IRQ_OFFSET + 14], 0, GD_KT, t_irq14, 0);	
+	SETGATE(idt[IRQ_OFFSET + 15], 0, GD_KT, t_irq15, 0);	
+
+	wrmsr(0x174, GD_KT, 0);
+	wrmsr(0x175, KSTACKTOP, 0);
+	wrmsr(0x176, (uint32_t)&sysenter_handler, 0);
+	
 	// Per-CPU setup 
 	trap_init_percpu();
 }
