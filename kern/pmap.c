@@ -1,5 +1,4 @@
 /* See COPYRIGHT for copyright information. */
-
 #include <inc/x86.h>
 #include <inc/mmu.h>
 #include <inc/error.h>
@@ -294,7 +293,13 @@ mem_init_mp(void)
 	//     Permissions: kernel RW, user NONE
 	//
 	// LAB 4: Your code here:
-
+	size_t i;
+	for(i = 0; i < NCPU; ++i){
+		uint32_t kstacktop = KSTACKTOP - i * (KSTKSIZE + KSTKGAP);
+		boot_map_region(kern_pgdir, kstacktop - KSTKSIZE,
+						KSTKSIZE, PADDR(percpu_kstacks[i]),
+						PTE_W);
+	}
 }
 
 // --------------------------------------------------------------
@@ -342,6 +347,9 @@ page_init(void)
 	// 2.the rest of base memroy is free
 	for(i = 1; i < npages_basemem; ++i){
 		pages[i].pp_ref = 0;
+		
+		if(i == PGNUM(MPENTRY_PADDR)) continue;
+		
 		pages[i].pp_link = page_free_list;
 		page_free_list = &pages[i];
 	}
@@ -358,6 +366,7 @@ page_init(void)
 
 	for( i = PADDR(boot_alloc(0))/PGSIZE; i < npages; ++i){
 		pages[i].pp_ref = 0;
+		if(i == PGNUM(MPENTRY_PADDR)) continue;
 		pages[i].pp_link = page_free_list;
 		page_free_list = &pages[i];
 	}
@@ -843,6 +852,7 @@ check_page_free_list(bool only_low_memory)
 
 	assert(nfree_basemem > 0);
 	assert(nfree_extmem > 0);
+	cprintf("check_page_free_list() succeed!\n");
 }
 
 //
