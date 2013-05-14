@@ -20,8 +20,6 @@ syscall(int num, int check, uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4, 
 				 "leal after_sysenter%=, %%esi\n\t"
 				 "sysenter\n\t"
 				 "after_sysenter%=:\n\t"
-				 				/* "pushl %%ebx\n\t" */
-								/* "popf\n\t" */
                  "popl %%edi\n\t"
                  "popl %%esi\n\t"
                  "popl %%ebp\n\t"
