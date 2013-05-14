@@ -1,0 +1,18 @@
+Q1.蜗居的这些中断不能共用一个处理函数，如果共用一个处理函数的话，对于error code
+   的处理会比较麻烦，因为并不是所有的中断都有error code；此外，如果共用的话，当前
+   的中断号将无法被简单记录，可能会影响后续对中断号的使用。
+
+Q2.这是由中断的权限引起的，虽然user/softint调用的是int 14，当我们在IDT中设置int 14
+   的特权界别是0，也就是说只有内核才能产生该中断，所以，当用户程序触发这个中断时，
+   会使得CPU产生另一个中断进行保护，这个保护中断就是int 13， general protection。
+
+Q3.这个问题和Question 2有点类似，到底是产生break point exception还是general protection
+   fault取决于你给int 3在IDT中所设置的权限。如果你给int 3设置的权限是0，那么只有内核才
+   能产生该中断，如果用户程序触发int 3，就会产生general protection fault来进行保护；如
+   果设置的权限是3，用户程序就会有权限来产生这个中断，那么就会产生break point exception。
+   所以为了让用户程序能够产生break point exception，我将int 3的权限设置为3。
+
+Q4.我觉得这个机制的关键在于对内核的保护，只有足够的权限才能触发相应的中断，这样可以使得
+   系统更加健壮，减少潜在发风险。在user/softint中，由于用户程序没有足够的权限，所以不能
+   触发page fault中断，从而使得CPU产生 general protection fault来进行保护。如果没有这个
+   机制，那么任何用户程序都可以很容易就将内核搞坏。

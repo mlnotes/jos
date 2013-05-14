@@ -22,6 +22,7 @@ sys_cputs(const char *s, size_t len)
 	// Destroy the environment if not.
 
 	// LAB 3: Your code here.
+	user_mem_assert(curenv, s, len, PTE_U);
 
 	// Print the string supplied by the user.
 	cprintf("%.*s", len, s);
@@ -274,6 +275,20 @@ sys_ipc_recv(void *dstva)
 	return 0;
 }
 
+void
+syscall_wrapper(struct Trapframe *tf)
+{
+	curenv->env_tf = *tf;
+	tf->tf_regs.reg_eax = 
+		syscall(tf->tf_regs.reg_eax,
+				tf->tf_regs.reg_edx,
+				tf->tf_regs.reg_ecx,
+				tf->tf_regs.reg_ebx,
+				tf->tf_regs.reg_edi,
+				0);
+	return;
+}
+
 // Dispatches to the correct kernel function, passing the arguments.
 int32_t
 syscall(uint32_t syscallno, uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4, uint32_t a5)
@@ -281,7 +296,29 @@ syscall(uint32_t syscallno, uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4, 
 	// Call the function corresponding to the 'syscallno' parameter.
 	// Return any appropriate return value.
 	// LAB 3: Your code here.
+	int32_t r = 0;
 
-	panic("syscall not implemented");
+	switch(syscallno){
+	case SYS_cputs:
+		sys_cputs((const char*)a1, (size_t)a2);
+		break;
+	case SYS_cgetc:
+		r = sys_cgetc();
+		break;
+	case SYS_getenvid:
+		r = sys_getenvid();
+		break;
+	case SYS_env_destroy:
+		r = sys_env_destroy((envid_t)a1);
+		break;
+	case SYS_map_kernel_page:
+		r = sys_map_kernel_page((void*)a1, (void*)a2);
+		break;
+	default:
+		r = -E_INVAL;
+	}
+
+	return r;
+//	panic("syscall not implemented");
 }
 
