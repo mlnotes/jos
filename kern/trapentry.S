@@ -115,7 +115,10 @@ _alltraps:
 	pushl	%esp
 	call	trap
 
+/*
 	popal
 	popl	%es
 	popl	%ds
 	iret
+
+	*/
