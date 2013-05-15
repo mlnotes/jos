@@ -298,7 +298,7 @@ mem_init_mp(void)
 		uint32_t kstacktop = KSTACKTOP - i * (KSTKSIZE + KSTKGAP);
 		boot_map_region(kern_pgdir, kstacktop - KSTKSIZE,
 						KSTKSIZE, PADDR(percpu_kstacks[i]),
-						PTE_W);
+						PTE_W | PTE_P);
 	}
 }
 

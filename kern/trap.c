@@ -185,7 +185,7 @@ trap_init_percpu(void)
 	wrmsr(0x174, GD_KT, 0);
 	wrmsr(0x175, KSTACKTOP - i*(KSTKSIZE+KSTKGAP), 0);
 	wrmsr(0x176, (uint32_t)&sysenter_handler, 0);
-	ltr(GD_TSS0 + i*8);
+	ltr(GD_TSS0 + (i << 3));
 
 	// Load the IDT
 	lidt(&idt_pd);
@@ -297,6 +297,7 @@ trap(struct Trapframe *tf)
 		// Acquire the big kernel lock before doing any
 		// serious kernel work.
 		// LAB 4: Your code here.
+		lock_kernel();
 		assert(curenv);
 
 		// Garbage collect if current enviroment is a zombie
@@ -343,6 +344,7 @@ page_fault_handler(struct Trapframe *tf)
 
 	// LAB 3: Your code here.
 	if((tf->tf_cs & 3) == 0){
+		print_trapframe(tf);
 		panic("kernel mode page fault");
 	}
 
