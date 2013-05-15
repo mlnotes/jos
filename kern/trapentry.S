@@ -68,7 +68,8 @@ TRAPHANDLER(t_pgflt, T_PGFLT);
 TRAPHANDLER(t_fperr, T_FPERR);	
 TRAPHANDLER(t_align, T_ALIGN);	
 TRAPHANDLER(t_mchk, T_MCHK);	
-TRAPHANDLER(t_simderr, T_SIMDERR);	
+TRAPHANDLER(t_simderr, T_SIMDERR);
+TRAPHANDLER_NOEC(t_syscall, T_SYSCALL);	
 
 .globl sysenter_handler;
 .type sysenter_handler, @function;
