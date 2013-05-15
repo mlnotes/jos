@@ -165,6 +165,21 @@ sys_env_set_pgfault_upcall(envid_t envid, void *func)
 	// panic("sys_env_set_pgfault_upcall not implemented");
 }
 
+// LAB 4 Challenge
+// Return 0 on success, < 0 on error.
+static int
+sys_env_set_prio(envid_t envid, uint32_t prio)
+{
+	struct Env *env;
+	int r = envid2env(envid, &env, 1);
+	if(r < 0)
+		return r;
+	
+	env->env_prio = prio;
+	return 0;
+}
+
+
 // Allocate a page of memory and map it at 'va' with permission
 // 'perm' in the address space of 'envid'.
 // The page's contents are set to 0.
@@ -519,6 +534,9 @@ syscall(uint32_t syscallno, uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4, 
 	case SYS_ipc_try_send:
 		r = sys_ipc_try_send((envid_t)a1, (uint32_t)a2, 
 							 (void*)a3, (unsigned)a4);
+		break;
+	case SYS_env_set_prio:
+		r = sys_env_set_prio((envid_t)a1, (uint32_t)a2);
 		break;
 	deault:
 		r = -E_INVAL;

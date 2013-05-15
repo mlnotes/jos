@@ -136,3 +136,8 @@ sys_ipc_recv(void *dstva)
 	return syscall(SYS_ipc_recv, 1, (uint32_t)dstva, 0, 0, 0, 0);
 }
 
+int
+sys_env_set_prio(envid_t envid, uint32_t prio)
+{
+	return syscall(SYS_env_set_prio, 1, envid, prio, 0, 0, 0);
+}

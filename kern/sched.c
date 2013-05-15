@@ -29,29 +29,66 @@ sched_yield(void)
 	// below to switch to this CPU's idle environment.
 
 	// LAB 4: Your code here.
-	if(curenv == NULL)
-		i = 0;
-	else{
-		i = ENVX(curenv->env_id) + 1;
-		if(i == NENV)
-			i = 0;
-	}
+	
+	if(curenv != NULL){
+		int curid = ENVX(curenv->env_id);
+		int i = (curid + 1) % NENV;
 
-	int cnt = 0;
-	while(cnt < NENV){
-		if(envs[i].env_type != ENV_TYPE_IDLE &&
-			envs[i].env_status == ENV_RUNNABLE){
-			env_run(envs + i);
+		uint32_t max_prio = 0;
+		int torun = -1;
+		while(i != curid){
+			if(envs[i].env_type != ENV_TYPE_IDLE &&
+				envs[i].env_status == ENV_RUNNABLE &&
+				envs[i].env_prio > max_prio){
+				
+				max_prio = envs[i].env_prio;
+				torun = i;
+			}
+			i = (i+1) % NENV;
 		}
 
-		i += 1;
-		if(i == NENV)
-			i = 0;
+		if(torun > -1 && torun != curid)
+			env_run(envs + torun);
+
+		if(curenv->env_status == ENV_RUNNING)
+			env_run(curenv);
+	}
+
+
+	/*
+	if(curenv == NULL)
+		i = 0;
+	else
+		i = (ENVX(curenv->env_id) + 1) % NENV;
+
+	int cnt = 0;
+	uint32_t max_prio = 0;
+	int torun = -1;
+	while(cnt < NENV){
+		if(envs[i].env_type != ENV_TYPE_IDLE &&
+			envs[i].env_status == ENV_RUNNABLE &&
+			envs[i].env_prio > max_prio){
+			
+			max_prio = envs[i].env_prio;
+			torun = i;
+			break;
+			//env_run(envs + i);
+		}
+
+		i = (i+1) % NENV;
 		cnt += 1;
+	}
+	
+	cprintf("TORUNNNNNNNNNNNNN: %d\n", torun);
+
+	if(torun > -1){
+		if(!curenv || (torun != ENVX(curenv->env_id)))
+			env_run(envs + torun);
 	}
 
 	if(curenv && curenv->env_status == ENV_RUNNING)
 		env_run(curenv);
+	*/
 
 	// For debugging and testing purposes, if there are no
 	// runnable environments other than the idle environments,
