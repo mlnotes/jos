@@ -11,6 +11,7 @@
 #include <kern/syscall.h>
 #include <kern/console.h>
 #include <kern/sched.h>
+#include <kern/spinlock.h>
 
 // Print a string to the system console.
 // The string is exactly 'len' characters long.
@@ -278,6 +279,8 @@ sys_ipc_recv(void *dstva)
 void
 syscall_wrapper(struct Trapframe *tf)
 {
+	lock_kernel();
+
 	curenv->env_tf = *tf;
 	tf->tf_regs.reg_eax = 
 		syscall(tf->tf_regs.reg_eax,
@@ -286,7 +289,8 @@ syscall_wrapper(struct Trapframe *tf)
 				tf->tf_regs.reg_ebx,
 				tf->tf_regs.reg_edi,
 				0);
-	return;
+	
+	unlock_kernel();
 }
 
 // Dispatches to the correct kernel function, passing the arguments.

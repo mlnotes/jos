@@ -37,8 +37,8 @@ sched_yield(void)
 			i = 0;
 	}
 
-	int sum = 0;
-	while(sum < NENV){
+	int cnt = 0;
+	while(cnt < NENV){
 		if(envs[i].env_type != ENV_TYPE_IDLE &&
 			envs[i].env_status == ENV_RUNNABLE){
 			env_run(envs + i);
@@ -47,7 +47,7 @@ sched_yield(void)
 		i += 1;
 		if(i == NENV)
 			i = 0;
-		sum += 1;
+		cnt += 1;
 	}
 
 	if(curenv && curenv->env_status == ENV_RUNNING)
