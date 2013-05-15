@@ -396,6 +396,47 @@ page_fault_handler(struct Trapframe *tf)
 	//   (the 'tf' variable points at 'curenv->env_tf').
 
 	// LAB 4: Your code here.
+	void *upcall = curenv->env_pgfault_upcall;
+	if(upcall){
+		uint32_t esp = tf->tf_esp;
+		if(esp >= (UXSTACKTOP-PGSIZE) && esp < UXSTACKTOP){
+			size_t len = sizeof(struct UTrapframe) + 4;			
+			user_mem_assert(curenv, (const void*)(esp-len),
+							len, PTE_P | PTE_U | PTE_W);
+
+			esp = esp - 4;
+		}else{
+			size_t len = sizeof(struct UTrapframe);
+			user_mem_assert(curenv, (const void*)(UXSTACKTOP - len),
+							len, PTE_P | PTE_U | PTE_W);
+		
+			esp = UXSTACKTOP;
+		}
+		
+		esp = esp -4;
+		*((uint32_t*)esp) = tf->tf_esp;
+
+		esp = esp - 4;
+		*((uint32_t*)esp) = tf->tf_eflags;
+
+		esp = esp - 4;
+		*((uint32_t*)esp) = tf->tf_eip;
+
+		esp = esp - sizeof(struct PushRegs);
+		*((struct PushRegs*)esp) = tf->tf_regs;
+
+		esp = esp - 4;
+		*((uint32_t*)esp) = tf->tf_err;
+
+		esp = esp - 4;
+		*((uint32_t*)esp) = fault_va;
+
+		curenv->env_tf.tf_eip = (uintptr_t)upcall;
+		curenv->env_tf.tf_esp = esp;
+
+		env_run(curenv);
+
+	}
 
 	// Destroy the environment that caused the fault.
 	cprintf("[%08x] user fault va %08x ip %08x\n",
