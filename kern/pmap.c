@@ -293,7 +293,7 @@ mem_init_mp(void)
 	//     Permissions: kernel RW, user NONE
 	//
 	// LAB 4: Your code here:
-	size_t i;
+	int i;
 	for(i = 0; i < NCPU; ++i){
 		uint32_t kstacktop = KSTACKTOP - i * (KSTKSIZE + KSTKGAP);
 		boot_map_region(kern_pgdir, kstacktop - KSTKSIZE,

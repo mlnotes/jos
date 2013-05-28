@@ -26,7 +26,7 @@ pgfault(struct UTrapframe *utf)
 
 	// LAB 4: Your code here.
 	if(!(err & FEC_WR))
-		panic("pgfault: wrong utf_err!");
+		panic("pgfault: wrong utf_err");
 
 	pde_t pde = vpd[PDX(addr)];
 	pte_t pte = vpt[PGNUM(addr)];
@@ -130,9 +130,8 @@ envid_t
 fork(void)
 {
 	// LAB 4: Your code here.
-	envid_t envid;
 	set_pgfault_handler(pgfault);
-	envid = sys_exofork();
+	envid_t envid = sys_exofork();
 	if(envid < 0)
 		panic("fork: %e", envid);
 	

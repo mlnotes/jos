@@ -98,7 +98,7 @@ sys_exofork(void)
 
 	// LAB 4: Your code here.
 	struct Env *newenv;
-	int r = env_alloc(&newenv, sys_getenvid());
+	int r = env_alloc(&newenv, curenv->env_id);
 	if(r < 0)
 		return r;
 	
@@ -272,6 +272,11 @@ sys_page_map(envid_t srcenvid, void *srcva,
 	if(udstva >= UTOP || udstva%PGSIZE)
 		return -E_INVAL;
 
+	// check perm
+	if(!(perm & PTE_P) || !(perm & PTE_U) || 
+		(perm & (~PTE_SYSCALL)))
+		return -E_INVAL;
+
 	// get env
 	struct Env *srcenv;
 	struct Env *dstenv;
@@ -288,15 +293,9 @@ sys_page_map(envid_t srcenvid, void *srcva,
 	if(pp == NULL)
 		return -E_NO_MEM;
 
-	// check perm
-	if(!(perm & PTE_P) || !(perm & PTE_U) || 
-		(perm & (~PTE_SYSCALL)))
+	if((perm & PTE_W) &&
+		!((*pte) & PTE_W))
 		return -E_INVAL;
-
-	if(perm & PTE_W){
-		if(((*pte) & PTE_W) == 0)
-			return -E_INVAL;
-	}
 
 	r = page_insert(dstenv->env_pgdir, pp, dstva, perm);
 	if(r < 0)
@@ -382,9 +381,7 @@ sys_ipc_try_send(envid_t envid, uint32_t value, void *srcva, unsigned perm)
 	if(r < 0)
 		return r;
 
-	if(env->env_ipc_from)
-		return -E_IPC_NOT_RECV;
-	if(env->env_ipc_recving == 0)
+	if(env->env_ipc_from || !env->env_ipc_recving)
 		return -E_IPC_NOT_RECV;
 
 	uint32_t uva = (uint32_t)srcva;
@@ -448,10 +445,8 @@ sys_ipc_recv(void *dstva)
 	// LAB 4: Your code here.
 	uint32_t uva = (uint32_t)dstva;
 	// ATTENTION!!! uav can be above UTOP
-	if(uva < UTOP){
-		if(uva % PGSIZE)
-			return -E_INVAL;
-	}
+	if(uva < UTOP && uva % PGSIZE)
+		return -E_INVAL;
 
 	curenv->env_ipc_recving = 1;
 	curenv->env_ipc_dstva = dstva;

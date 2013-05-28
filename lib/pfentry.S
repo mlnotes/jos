@@ -88,7 +88,7 @@ _pgfault_upcall:
 	// no longer use arithmetic operations or anything else that
 	// modifies eflags.
 	// LAB 4: Your code here.
-	// skip %esip 
+	// skip %esp 
 	add $0x4, %esp
 	popfl
 

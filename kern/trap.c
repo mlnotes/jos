@@ -314,7 +314,7 @@ trap_dispatch(struct Trapframe *tf)
 	// Handle clock interrupts. Don't forget to acknowledge the
 	// interrupt using lapic_eoi() before calling the scheduler!
 	// LAB 4: Your code here.
-	if(tf->tf_trapno == IRQ_OFFSET){
+	if(tf->tf_trapno == IRQ_OFFSET + IRQ_TIMER){
 		lapic_eoi();
 		sched_yield();
 	}
@@ -436,44 +436,29 @@ page_fault_handler(struct Trapframe *tf)
 	// LAB 4: Your code here.
 	void *upcall = curenv->env_pgfault_upcall;
 	if(upcall){
+		struct UTrapframe *utf;
 		uint32_t esp = tf->tf_esp;
+		size_t len = sizeof(struct UTrapframe);			
 		if(esp >= (UXSTACKTOP-PGSIZE) && esp < UXSTACKTOP){
-			size_t len = sizeof(struct UTrapframe) + 4;			
-			user_mem_assert(curenv, (const void*)(esp-len),
-							len, PTE_P | PTE_U | PTE_W);
-
-			esp = esp - 4;
+			utf = (struct UTrapframe*)(esp-len-4);
 		}else{
-			size_t len = sizeof(struct UTrapframe);
-			user_mem_assert(curenv, (const void*)(UXSTACKTOP - len),
-							len, PTE_P | PTE_U | PTE_W);
-		
-			esp = UXSTACKTOP;
+			utf = (struct UTrapframe*)(UXSTACKTOP-len);
 		}
-		
-		esp = esp -4;
-		*((uint32_t*)esp) = tf->tf_esp;
+	
+		user_mem_assert(curenv, (void*)utf, len, PTE_P | PTE_U | PTE_W);
 
-		esp = esp - 4;
-		*((uint32_t*)esp) = tf->tf_eflags;
+		utf->utf_eflags = tf->tf_eflags;
+		utf->utf_eip = tf->tf_eip;
+		utf->utf_err = tf->tf_err;
+		utf->utf_esp = tf->tf_esp;
+		utf->utf_fault_va = fault_va;
+		utf->utf_regs = tf->tf_regs;
 
-		esp = esp - 4;
-		*((uint32_t*)esp) = tf->tf_eip;
-
-		esp = esp - sizeof(struct PushRegs);
-		*((struct PushRegs*)esp) = tf->tf_regs;
-
-		esp = esp - 4;
-		*((uint32_t*)esp) = tf->tf_err;
-
-		esp = esp - 4;
-		*((uint32_t*)esp) = fault_va;
 
 		curenv->env_tf.tf_eip = (uintptr_t)upcall;
-		curenv->env_tf.tf_esp = esp;
+		curenv->env_tf.tf_esp = (uint32_t)utf;
 
 		env_run(curenv);
-
 	}
 
 	// Destroy the environment that caused the fault.
