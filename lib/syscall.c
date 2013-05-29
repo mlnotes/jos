@@ -7,7 +7,7 @@ static inline int32_t
 syscall(int num, int check, uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4, uint32_t a5)
 {
 	int32_t ret;
-	/*
+	
 	asm volatile("pushl %%ecx\n\t"
 		 "pushl %%edx\n\t"
 	         "pushl %%ebx\n\t"
@@ -36,7 +36,7 @@ syscall(int num, int check, uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4, 
                    "b" (a3),
                    "D" (a4)
                  : "cc", "memory");
-	*/
+	/**
 	asm volatile(
 		"int %1\n"
 		: "=a" (ret)
@@ -49,6 +49,7 @@ syscall(int num, int check, uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4, 
 		  "S" (a5)
 		: "cc", "memory"
 	);
+	*/
 
 	if(check && ret > 0)
 		panic("syscall %d returned %d (> 0)", num, ret);
@@ -101,7 +102,7 @@ sys_page_alloc(envid_t envid, void *va, int perm)
 int
 sys_page_map(envid_t srcenv, void *srcva, envid_t dstenv, void *dstva, int perm)
 {
-	return syscall(SYS_page_map, 1, srcenv, (uint32_t) srcva, dstenv, (uint32_t) dstva, perm);
+	return syscall(SYS_page_map, 1, srcenv, (uint32_t) srcva, dstenv, ((uint32_t)dstva) | perm, perm);
 }
 
 int

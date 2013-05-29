@@ -514,8 +514,13 @@ syscall(uint32_t syscallno, uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4, 
 		r = sys_page_alloc((envid_t)a1, (void*)a2, (int)a3);
 		break;
 	case SYS_page_map:
-		r = sys_page_map((envid_t)a1, (void*)a2, 
-						 (envid_t)a3, (void*)a4, (int)a5);
+		{
+			int perm = (int)a4 & (PGSIZE-1);
+			int dstva = (int)a4 & ~(PGSIZE-1);
+			r = sys_page_map((envid_t)a1, (void*)a2, 
+						 (envid_t)a3, (void*)dstva, perm);
+		
+		}
 		break;
 	case SYS_page_unmap:
 		r = sys_page_unmap((envid_t)a1, (void*)a2);
