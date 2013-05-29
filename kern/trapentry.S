@@ -117,6 +117,7 @@ sysenter_handler:
 	popl	%ds
 	movl	%ebp, %ecx
 	movl	%esi, %edx
+	sti
 	sysexit
 
 /*
